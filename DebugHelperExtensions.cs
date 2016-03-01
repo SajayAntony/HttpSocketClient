@@ -6,7 +6,7 @@ namespace HttpSocketClient
 {
     public static class DebugUtility
     {
-        [Conditional("DEBUG")]        
+        [Conditional("DEBUG")]
         public static void DumpASCII(SocketAwaitableEventArgs args)
         {
             if (args.BytesTransferred > 0)
@@ -15,8 +15,13 @@ namespace HttpSocketClient
             }
         }
 
-        static void DumpASCII(byte[] content, int index, int count)
+        public static void DumpASCII(byte[] content, int index = 0, int count = -1)
         {
+            if (count == -1)
+            {
+                count = content.Length;
+            }
+
             Console.WriteLine(Encoding.ASCII.GetChars(content, index, count));
         }
     }

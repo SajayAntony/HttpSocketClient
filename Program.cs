@@ -10,84 +10,71 @@ namespace HttpSocketClient
     {
         public static void Main(string[] args)
         {
-            RequestAsync().Wait();
-        }
-
-        static async Task RequestAsync()
-        {
-            string hostname = "127.0.0.1";
-            int port = 5000;
-
-            IPAddress address = IPAddress.Parse(hostname);
-            IPEndPoint endpoint = new IPEndPoint(address, port);
-
-            using (var socket = await ConnectAsync(endpoint))
+            if (args.Length == 0)
             {
-                const string request =
-                                "GET / HTTP/1.1\r\n" +
-                                "Host: 127.0.0.1\r\n" +
-                                "Content-Length: 0\r\n" +
-                                "Connection: close\r\n" +
-                                "\r\n";
-                var buffer = new byte[1024];
-                socket.Send(Encoding.ASCII.GetBytes(request));
-                using (SocketAwaitableEventArgs args = new SocketAwaitableEventArgs())
-                {
-                    args.SetBuffer(buffer, 0, buffer.Length);
-                    while (true)
-                    {
-                        try
-                        {
-                            await socket.ReceiveSocketAsync(args);
-                            if (args.BytesTransferred == 0)
-                            {
-                                break;
-                            }
-
-                            DebugUtility.DumpASCII(args);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                            throw;
-                        }
-                    }
-                }
-                socket.Dispose();
+                // string requestUri = "http://www.bing.com/";      // DNSHost
+                // string requestUri = "http://localhost:5000/";    // Kestrel
+                 string requestUri= "http://localhost:12777/";    // IIS
+                RequestAsync(requestUri).Wait();
             }
         }
 
-        internal static async Task<Socket> ConnectAsync(
-                            EndPoint endpoint,
-                            SocketType socketType = SocketType.Stream,
-                            ProtocolType protocolType = ProtocolType.Tcp)
+        static async Task RequestAsync(string requestUri)
         {
-            var socket = new Socket(socketType, protocolType);
-            bool disposeSocket = false;
+            var uri = new Uri(requestUri);
+            string hostname = uri.Host;
+            int port = uri.Port;
+            var endpoint = GetEndpoint(uri.Host, uri.Port);
+
+            Socket socket = null;
             try
             {
-                using (SocketAwaitableEventArgs args = new SocketAwaitableEventArgs())
-                {
-                    args.RemoteEndPoint = endpoint;
-                    await socket.ConnectSocketAsync(args);
-                }
+                socket = await endpoint.ConnectAsync();
+                socket.SendRequest(() => GetRequest(uri.ToString(), hostname, port));
+                await socket.DrainResponse();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                disposeSocket = true;
+                Console.WriteLine(ex.Message);
                 throw;
             }
             finally
             {
-                if (disposeSocket)
+                if (socket != null)
                 {
                     socket.Dispose();
-                    socket = null;
                 }
             }
+        }
 
-            return socket;
+        private static byte[] GetRequest(string requestUri, string hostname, int port)
+        {
+            var request = RequestBuilder.Build("GET", requestUri,
+                // Headers
+                "Host: " + hostname + (port != 80 ? ":" + port : string.Empty),
+                "Content-Length: 0",
+                "Connection: close"
+            );
+
+            DebugUtility.DumpASCII(request);
+
+            return request;
+        }
+
+        private static EndPoint GetEndpoint(string hostname, int port)
+        {
+            EndPoint endpoint = null;
+            IPAddress address;
+            if (IPAddress.TryParse(hostname, out address))
+            {
+                endpoint = new IPEndPoint(address, port);
+            }
+            else
+            {
+                endpoint = new DnsEndPoint(hostname, port);
+            }
+
+            return endpoint;
         }
     }
-
 }

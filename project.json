@@ -1,6 +1,6 @@
 ﻿{
   "version": "1.0.0-*",
-  "description": "Client Console Application",
+  "description": "A socket based HTTP Client",
   "authors": [ "sajaya" ],
   "tags": [ "" ],
   "projectUrl": "",
@@ -14,7 +14,7 @@
   },
 
   "commands": {
-    "Client": "Client"
+    "HttpSocketClient": "HttpSocketClient"
   },
 
   "frameworks": {
