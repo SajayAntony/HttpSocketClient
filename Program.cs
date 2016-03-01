@@ -10,28 +10,35 @@ namespace HttpSocketClient
     {
         public static void Main(string[] args)
         {
+            var requestUri = string.Empty;
             if (args.Length == 0)
             {
-                // string requestUri = "http://www.bing.com/";      // DNSHost
-                // string requestUri = "http://localhost:5000/";    // Kestrel
-                 string requestUri= "http://localhost:12777/";    // IIS
-                RequestAsync(requestUri).Wait();
+                 requestUri = "http://www.bing.com/";      // DNSHost
+                // requestUri = "http://localhost:5000/";    // Kestrel
+                // requestUri = "http://localhost:12777/";    // IIS
+
             }
+            else
+            {
+                requestUri = args[0];
+            }
+
+            RequestAsync(requestUri).Wait();
         }
 
         static async Task RequestAsync(string requestUri)
         {
             var uri = new Uri(requestUri);
-            string hostname = uri.Host;
-            int port = uri.Port;
             var endpoint = GetEndpoint(uri.Host, uri.Port);
 
             Socket socket = null;
             try
             {
                 socket = await endpoint.ConnectAsync();
-                socket.SendRequest(() => GetRequest(uri.ToString(), hostname, port));
-                await socket.DrainResponse();
+
+                await socket.ProcessRequest(
+                    () => RequestBuilder.BuildGetRequest(uri),
+                    () => socket.DrainResponse());                
             }
             catch (Exception ex)
             {
@@ -45,20 +52,6 @@ namespace HttpSocketClient
                     socket.Dispose();
                 }
             }
-        }
-
-        private static byte[] GetRequest(string requestUri, string hostname, int port)
-        {
-            var request = RequestBuilder.Build("GET", requestUri,
-                // Headers
-                "Host: " + hostname + (port != 80 ? ":" + port : string.Empty),
-                "Content-Length: 0",
-                "Connection: close"
-            );
-
-            DebugUtility.DumpASCII(request);
-
-            return request;
         }
 
         private static EndPoint GetEndpoint(string hostname, int port)

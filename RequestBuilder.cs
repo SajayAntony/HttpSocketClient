@@ -8,7 +8,27 @@ namespace HttpSocketClient
     {
         static byte[] CRLF = ASCIIEncoding.ASCII.GetBytes("\r\n");
         static byte[] HTTP_11 = ASCIIEncoding.ASCII.GetBytes("HTTP/1.1");
-        public static byte[] Build(string verb, string requestUri, params string[] headers)
+
+        public static byte[] BuildGetRequest(Uri requestUri)
+        {
+            var hostname = requestUri.Host;
+            var port = requestUri.Port;
+
+            // For kestrel use requestUri.PathAndQuery.ToString()            
+            var request = Build("GET", requestUri.ToString(),
+               // Headers
+               "Host: " + hostname + (port != 80 ? ":" + port : string.Empty),
+               "Content-Length: 0",
+               "Connection: close"
+           );
+
+            DebugUtility.DumpASCII(request);
+
+            return request;
+        }
+
+
+        static byte[] Build(string verb, string requestUri, params string[] headers)
         {
             var r = Request.Create();
             r.Append(verb);

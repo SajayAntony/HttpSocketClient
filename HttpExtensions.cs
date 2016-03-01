@@ -39,10 +39,13 @@ namespace HttpSocketClient
             return socket;
         }
 
-        public static Socket SendRequest(this Socket socket, Func<byte[]> requestBuilder)
+        public static async Task<Socket> ProcessRequest(this Socket socket,
+                                                    Func<byte[]> requestBuilder, 
+                                                    Func<Task> handleResponse)
         {
             var request = requestBuilder();
             socket.Send(request);
+            await handleResponse();
             return socket;
         }
 
@@ -50,8 +53,7 @@ namespace HttpSocketClient
         {
             var buffer = new byte[1024];
             using (SocketAwaitableEventArgs args = new SocketAwaitableEventArgs())
-            {
-                
+            {                
                 while (true)
                 {
                     try
