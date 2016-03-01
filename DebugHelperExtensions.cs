@@ -11,7 +11,7 @@ namespace HttpSocketClient
         {
             if (args.BytesTransferred > 0)
             {
-                DumpASCII(args.Buffer, 0, args.Count);
+                DumpASCII(args.Buffer, 0, args.BytesTransferred);
             }
         }
 

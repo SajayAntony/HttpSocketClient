@@ -51,11 +51,12 @@ namespace HttpSocketClient
             var buffer = new byte[1024];
             using (SocketAwaitableEventArgs args = new SocketAwaitableEventArgs())
             {
-                args.SetBuffer(buffer, 0, buffer.Length);
+                
                 while (true)
                 {
                     try
                     {
+                        args.SetBuffer(buffer, 0, buffer.Length);
                         await socket.ReceiveSocketAsync(args);
                         if (args.BytesTransferred == 0)
                         {
