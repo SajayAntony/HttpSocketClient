@@ -2,11 +2,14 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Buffers;
 
 namespace HttpSocketClient
 {
     public static class HttpExtensions
     {
+        static ArrayPool<byte> bytePool = System.Buffers.ArrayPool<byte>.Shared;
+
         internal static async Task<Socket> ConnectAsync(
                            this EndPoint endpoint,
                            SocketType socketType = SocketType.Stream,
@@ -40,7 +43,7 @@ namespace HttpSocketClient
         }
 
         public static async Task<Socket> ProcessRequest(this Socket socket,
-                                                    Func<byte[]> requestBuilder, 
+                                                    Func<byte[]> requestBuilder,
                                                     Func<Task> handleResponse)
         {
             var request = requestBuilder();
@@ -49,31 +52,44 @@ namespace HttpSocketClient
             return socket;
         }
 
-        public static async Task DrainResponse(this Socket socket)
+        public static async Task DrainResponse(this Socket socket, bool close = false)
         {
-            var buffer = new byte[1024];
-            using (SocketAwaitableEventArgs args = new SocketAwaitableEventArgs())
-            {                
-                while (true)
-                {
-                    try
-                    {
-                        args.SetBuffer(buffer, 0, buffer.Length);
-                        await socket.ReceiveSocketAsync(args);
-                        if (args.BytesTransferred == 0)
-                        {
-                            socket.Dispose();
-                            break;
-                        }
 
-                        DebugUtility.DumpASCII(args);
-                    }
-                    catch (Exception ex)
+            byte[] buffer = bytePool.Rent(1024);
+
+            try
+            {
+                using (SocketAwaitableEventArgs args = new SocketAwaitableEventArgs())
+                {
+                    while (true)
                     {
-                        Console.WriteLine(ex.Message);
-                        throw;
+                        try
+                        {
+                            args.SetBuffer(buffer, 0, buffer.Length);
+                            await socket.ReceiveSocketAsync(args);
+                            if (args.BytesTransferred == 0)
+                            {
+                                break;
+                            }
+
+                            DebugUtility.DumpASCII(args);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            throw;
+                        }
                     }
                 }
+            }
+            finally
+            {
+                if (close)
+                {
+                    socket.Dispose();
+                }
+
+                bytePool.Return(buffer);
             }
         }
     }

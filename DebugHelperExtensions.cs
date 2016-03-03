@@ -9,14 +9,17 @@ namespace HttpSocketClient
         [Conditional("DEBUG")]
         public static void DumpASCII(SocketAwaitableEventArgs args)
         {
+            return;
             if (args.BytesTransferred > 0)
             {
                 DumpASCII(args.Buffer, 0, args.BytesTransferred);
             }
         }
 
+        [Conditional("DEBUG")]
         public static void DumpASCII(byte[] content, int index = 0, int count = -1)
         {
+            return;
             if (count == -1)
             {
                 count = content.Length;

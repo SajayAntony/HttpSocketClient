@@ -9,18 +9,17 @@ namespace HttpSocketClient
         static byte[] CRLF = ASCIIEncoding.ASCII.GetBytes("\r\n");
         static byte[] HTTP_11 = ASCIIEncoding.ASCII.GetBytes("HTTP/1.1");
 
-        public static byte[] BuildGetRequest(Uri requestUri)
+        public static byte[] BuildGetRequest(Uri requestUri, bool close)
         {
             var hostname = requestUri.Host;
             var port = requestUri.Port;
 
             // For kestrel use requestUri.PathAndQuery.ToString()            
-            var request = Build("GET", requestUri.ToString(),
+            var request = Build("GET", requestUri.PathAndQuery.ToString(),
                // Headers
                "Host: " + hostname + (port != 80 ? ":" + port : string.Empty),
                "Content-Length: 0",
-               "Connection: close"
-           );
+               close ? "Connection: close" : string.Empty);           
 
             DebugUtility.DumpASCII(request);
 
@@ -40,8 +39,11 @@ namespace HttpSocketClient
 
             for (int i = 0; i < headers.Length; i++)
             {
-                r.Append(headers[i]);
-                r.Append(CRLF);
+                if (!String.IsNullOrWhiteSpace(headers[i]))
+                {
+                    r.Append(headers[i]);
+                    r.Append(CRLF);
+                }
             }
 
             r.Append(CRLF);
