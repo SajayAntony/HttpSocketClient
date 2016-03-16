@@ -16,6 +16,7 @@ namespace HttpSocketClient
                            ProtocolType protocolType = ProtocolType.Tcp)
         {
             var socket = new Socket(socketType, protocolType);
+            Bind(socket, endpoint);
             bool disposeSocket = false;
             try
             {
@@ -42,6 +43,19 @@ namespace HttpSocketClient
             return socket;
         }
 
+        private static void Bind(Socket socket, EndPoint endpoint)
+        {
+            var localendpoint = endpoint.CloneIPWithoutPort();
+            socket.Bind(localendpoint);
+        }
+
+        public static IPEndPoint CloneIPWithoutPort(this EndPoint endpoint)
+        {
+            IPEndPoint dest = endpoint as IPEndPoint;
+            IPEndPoint ip = new IPEndPoint(dest.Address, 0);
+            return ip;
+        }
+
         public static async Task<Socket> ProcessRequest(this Socket socket,
                                                     Func<byte[]> requestBuilder,
                                                     Func<Task> handleResponse)
@@ -55,7 +69,7 @@ namespace HttpSocketClient
         public static async Task DrainResponse(this Socket socket, bool close = false)
         {
 
-            byte[] buffer = bytePool.Rent(1024);
+            byte[] buffer = bytePool.Rent(500);
 
             try
             {
