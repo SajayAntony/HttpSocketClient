@@ -37,7 +37,8 @@ namespace HttpSocketClient
 
 
             Task.Run(async () => {
-                var eth0 = "http://172.30.169.104:5000/";
+                // var eth0 = "http://172.30.169.104:5000/";
+                var eth0 = requestUri;
                 Console.WriteLine("URI:{0} , LocalIP: {1}", eth0, GetEndpoint(eth0).CloneIPWithoutPort());
                 for (int j = 0; j < 30 * 1000; j++)
                 {
